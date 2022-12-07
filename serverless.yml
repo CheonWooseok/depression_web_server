@@ -1,0 +1,89 @@
+service: depression-web-api
+plugins:
+  - serverless-plugin-optimize
+  - serverless-offline
+  # - serverless-layers
+
+functions:
+  app:
+    handler: dist/main.handler
+    events:
+      - http:
+        method: any
+        path: '/'
+        cors: true
+      - http:
+          method: any
+          path: /{any+}
+          cors: true
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+    GatewayResponseDefault5XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+
+provider:
+  name: aws
+  profile: woorifp2
+  runtime: nodejs16.x
+  region: ap-northeast-2
+  environment:
+    COGNITO_USER_POOL_ID: ap-northeast-2_JXuUqart1
+    COGNITO_CLIENT_ID: 244k5dm7s88eohffu769hojlpm
+    COGNITO_REGION: ap-northeast-2
+
+  apiGateway:
+    shouldStartNameWithService: true
+
+  iam:
+    role:
+      statements:
+        - Effect: 'Allow'
+          Action:
+            - 'dynamodb:DescribeTable'
+            - 'dynamodb:Query'
+            - 'dynamodb:Scan'
+            - 'dynamodb:GetItem'
+            - 'dynamodb:PutItem'
+            - 'dynamodb:UpdateItem'
+            - 'dynamodb:DeleteItem'
+
+          Resource:
+            - 'arn:aws:dynamodb:ap-northeast-2:*:table/depressionApp_UserInfo'
+            - 'arn:aws:dynamodb:ap-northeast-2:*:table/DepressionApp_Eval'
+
+custom:
+  serverless-offline:
+    httpPort: 9090
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude: aws-sdk
+    target: node16
+    define: 'require.resolve: undefined'
+    platform: node
+    concurrency: 10
+  dynamodb:
+    start:
+      port: 5000
+      inMemory: true
+      migrate: true
+
+    stages: dev
